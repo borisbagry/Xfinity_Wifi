@@ -1,0 +1,108 @@
+#!/bin/bash 
+yellow="\033[1;33m"
+Orange="\033[0;33m"
+Cyan="\033[0;36m"
+RED="\033[0;31m"
+NC="\033[0m"
+WIFI_ID="$(iwgetid -r)"
+VALUE=$(nmcli -t -f SSID dev wifi | awk '/xfinitywifi/{print;exit}' )
+IFACE=$(nmcli -t -f DEVICE dev status | awk NR==1)
+	
+
+function mainMenu {
+	clear
+	while true; do
+		clear
+		echo -e "Do You Want To Get $Orange Xfinity $NC Rolling [$yellow?$NC] \n"
+		echo -e "   <$Cyan Choose By Entering A Number $NC> \n"
+		echo -e "\t 1] Yes    "
+		echo -e "\t 2] No          \n"                
+		echo  -n""
+		read sn
+		echo ""
+		case $sn in
+			1 ) clear; break;;
+			2 ) clear; trap_c;;
+			* ) echo "Unknown option. Please choose again" ;;
+		  esac
+	done
+}
+
+function trap_c {
+	if [ $WIFI_ID != "xfinitywifi" ];then
+		echo -e "\rAttemping To Reconnect to $WIFI_ID [${yellow}?${NC}] \n"
+		nmcli d wifi connect $WIFI_ID password $WIFI_PSK &> /dev/null;
+		sleep 0.5
+	fi
+	exit $?
+}
+
+#Xfinity Availability Check
+if [ -z "$VALUE" ]; then
+	echo -e "No$yellow Xfinitywifi$NC To Be Connected To \n"
+	echo -e "    Script is$RED Terminating$NC Now\n"
+	echo -e	"$Cyan	  Goodbye$NC [$yellow!$NC] \n"
+	sleep 3
+	exit
+else
+	clear
+	echo -e "Looks Like there is some $Orange Xfinity $NC in your Area\n"
+fi
+	#Preliminary Check
+	if [ -z "$(which macchanger)" ]; then 
+		echo -e "No$yellow Macchanger$NC Detected$RED INSTALLING$NC Now \n"	
+		sudo apt-get install macchanger -y
+	fi
+	if [ -z "$(which caffeine)" ]; then 
+		echo -e "\nNo$yellow Caffeine$NC Detected$RED INSTALLING$NC Now \n"	
+		sudo apt-get install caffeine -y
+	fi
+	if [ -z "$(which xinput)" ]; then 
+		echo -e "\nNo$yellow Xinput$NC Detected$RED INSTALLING$NC Now \n"	
+		sudo apt-get install xinput -y
+	fi
+	if [ -z "$(which pip)" ]; then
+		echo -e "\nNo$yellow PIP$NC Detected$RED BYE$NC Now \n"
+		sleep 4
+		exit
+	elif [ -z "$(pip freeze -q | grep 'selenium')" ]; then
+		echo -e "\nNo$yellow SELENIUM$NC Detected \n"
+		echo -e "NEED IT FOR PYTHON $RED Terminating$NC Now\n"
+		exit
+	elif [ -z "$(pip freeze -q | grep 'python-arptable')" ]; then
+		echo -e "\nNo$yellow PYTHON_ARPTABLES$NC Detected \n"
+		echo -e "NEED IT FOR PYTHON $RED Terminating$NC Now\n"
+		exit
+	fi
+
+WIFI_PSK=$(cat /etc/NetworkManager/system-connections/"$WIFI_ID" | awk '/psk=/ {print substr($0,5);exit}')
+
+if pgrep xterm &> /dev/null ; then
+	sudo killall xterm 
+fi
+
+#Xfinifity Previous/Current Connections Check
+if [ "$WIFI_ID" != "" ] && [ "$WIFI_ID" != "xfinitywifi" ]; then
+	echo -e "Disconnecting From $WIFI_ID [${RED}!${NC}] \n"
+	nmcli d disconnect $IFACE &> /dev/null
+	sleep 1
+fi
+if [ "$WIFI_ID" != "xfinitywifi" ]; then
+	echo -e "Attemping To Connect to Xfinity [${yellow}?${NC}]\n"
+	nmcli d wifi connect $VALUE &> /dev/null
+	sleep 2
+fi
+
+#Check for MAC file
+if [ ! -f Mac.txt ]; then
+	echo -e "\nNo Mac.txt FOUND [${RED}!${NC}]\n"
+	sleep 2
+	echo -e "Creating Mac.txt [${yellow}?${NC}]\n"
+	sleep 2
+	touch Mac.txt
+fi
+
+#Main Script Function Exec	
+trap trap_c SIGINT
+mainMenu
+sudo caffeinate xterm -geometry 70x20+0+0 -fa monospace -fs 8 -hold -e './script1.sh' & disown

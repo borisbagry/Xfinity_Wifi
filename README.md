@@ -4,10 +4,11 @@ Unlimited xfinity wifi for Debian Based OS
 Make files executable
 
 Install or have the following the following 
-  \npip
-  \npython 2.7
-  \nselenium
-  \npython_arptable
+
+  pip
+  python 2.7
+  selenium
+  python_arptable
 
 run ./staple
 
